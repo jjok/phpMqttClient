@@ -17,8 +17,6 @@ use oliverlorenz\reactphpmqtt\packet\MessageHelper;
 use oliverlorenz\reactphpmqtt\packet\PingRequest;
 use oliverlorenz\reactphpmqtt\packet\PingResponse;
 use oliverlorenz\reactphpmqtt\packet\Publish;
-//use oliverlorenz\reactphpmqtt\packet\PublishAck;
-//use oliverlorenz\reactphpmqtt\packet\PublishComplete;
 use oliverlorenz\reactphpmqtt\packet\PublishReceived;
 use oliverlorenz\reactphpmqtt\packet\PublishRelease;
 use oliverlorenz\reactphpmqtt\packet\Subscribe;
@@ -95,8 +93,8 @@ class Connector implements ConnectorInterface {
      * Creates a new connection
      *
      * @param string $host
-     * @param integer $port [optional]
-     * @param ConnectionOptions $options [optional]
+     * @param int $port [optional]
+     * @param ConnectionOptions|null $options [optional]
      *
      * @return PromiseInterface Resolves to a \React\Stream\Stream once a connection has been established
      */
@@ -106,7 +104,7 @@ class Connector implements ConnectorInterface {
         ConnectionOptions $options = null
     ) {
         // Set default connection options, if none provided
-        if(!isset($options)){
+        if($options == null) {
             $options = $this->getDefaultConnectionOptions();
         }
 
@@ -115,14 +113,14 @@ class Connector implements ConnectorInterface {
                 return $this->connect($stream, $options);
             })
             ->then(function (Stream $stream) {
-                return $this->emitEvents($stream);
+                return $this->listenForPackets($stream);
             })
             ->then(function(Stream $stream) {
                 return $this->keepAlive($stream);
             });
     }
 
-    private function emitEvents(Stream $stream)
+    private function listenForPackets(Stream $stream)
     {
         $stream->on('data', function ($rawData) use($stream) {
             $messages = $this->splitMessage($rawData);
@@ -257,13 +255,14 @@ class Connector implements ConnectorInterface {
     /**
      * @return \React\Promise\Promise
      */
-    public function publish(Stream $stream, $topic, $message, $qos = 0, $dup = false)
+    public function publish(Stream $stream, $topic, $message, $qos = 0, $dup = false, $retain = false)
     {
         $packet = new Publish($this->version);
         $packet->setTopic($topic);
         $packet->setMessageId($this->messageCounter++);
         $packet->setQos($qos);
         $packet->setDup($dup);
+        $packet->setRetain($retain);
         $packet->addRawToPayLoad($message);
         $success = $this->sendPacketToStream($stream, $packet);
 
