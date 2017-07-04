@@ -7,6 +7,7 @@
 
 use oliverlorenz\reactphpmqtt\packet\MessageHelper;
 use oliverlorenz\reactphpmqtt\packet\Publish;
+use oliverlorenz\reactphpmqtt\protocol\Version4;
 
 class PublishTest extends PHPUnit_Framework_TestCase {
 
@@ -15,125 +16,127 @@ class PublishTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(3, Publish::getControlPacketType());
     }
 
-    public function testPublishStandardWithQos2()
+    public function testExceptionIsThrownForUnexpectedPacketType()
     {
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
-        $packet->setQos(2);
+        $input =
+            chr(0b00100000) .
+            chr(2) .
+            chr(0) .
+            chr(0);
 
-        $this->assertEquals(
-            MessageHelper::getReadableByRawString(
-                chr(52) .
-                chr(2) .
-                chr(0) .
-                chr(0) .
-                chr(49)
-            ),
-            MessageHelper::getReadableByRawString($packet->get() . 1)
+        $this->setExpectedException(
+            'RuntimeException',
+            'raw input is not valid for this control packet'
         );
+
+        Publish::parse(new Version4(), $input);
     }
 
-    public function testPublishStandarWithQos1()
+    public function testPublishStandardWithQos2()
     {
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
+        $packet = new Publish(new Version4());
+        $packet->setQos(2);
+
+        $expected =
+            chr(0b00110100) .
+            chr(2) .
+            chr(0) .
+            chr(0);
+
+        $this->assertSerialisedPacketEquals($expected, $packet->get());
+    }
+
+    public function testPublishStandardWithQos1()
+    {
+        $packet = new Publish(new Version4());
         $packet->setQos(1);
-        $this->assertEquals(
-            MessageHelper::getReadableByRawString(
-                chr(50) .
-                chr(2) .
-                chr(0) .
-                chr(0) .
-                chr(49)
-            ),
-            MessageHelper::getReadableByRawString($packet->get() . 1)
-        );
+
+        $expected =
+            chr(0b00110010) .
+            chr(2) .
+            chr(0) .
+            chr(0);
+
+        $this->assertSerialisedPacketEquals($expected, $packet->get());
     }
 
     public function testPublishStandardWithQos0()
     {
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
+        $packet = new Publish(new Version4());
         $packet->setQos(0);
-        $this->assertEquals(
-            MessageHelper::getReadableByRawString(
-                chr(48) .
-                chr(2) .
-                chr(0) .
-                chr(0) .
-                chr(49)
-            ),
-            MessageHelper::getReadableByRawString($packet->get() . 1)
-        );
+
+        $expected =
+            chr(0b00110000) .
+            chr(2) .
+            chr(0) .
+            chr(0);
+
+        $this->assertSerialisedPacketEquals($expected, $packet->get());
     }
 
     public function testPublishStandardWithDup()
     {
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
+        $packet = new Publish(new Version4());
         $packet->setDup(true);
-        $this->assertEquals(
-            MessageHelper::getReadableByRawString(
-                chr(56) .
-                chr(2) .
-                chr(0) .
-                chr(0) .
-                chr(49)
-            ),
-            MessageHelper::getReadableByRawString($packet->get() . 1)
-        );
+
+        $expected =
+            chr(0b00111000) .
+            chr(2) .
+            chr(0) .
+            chr(0);
+
+        $this->assertSerialisedPacketEquals($expected, $packet->get());
     }
 
     public function testPublishStandardWithRetain()
     {
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
+        $packet = new Publish(new Version4());
         $packet->setRetain(true);
-        $this->assertEquals(
-            MessageHelper::getReadableByRawString(
-                chr(49) .
-                chr(2) .
-                chr(0) .
-                chr(0) .
-                chr(49)
-            ),
-            MessageHelper::getReadableByRawString($packet->get() . 1)
-        );
+
+        $expected =
+            chr(0b00110001) .
+            chr(2) .
+            chr(0) .
+            chr(0);
+
+        $this->assertSerialisedPacketEquals($expected, $packet->get());
     }
 
     public function testPublishWithPayload()
     {
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
+        $packet = new Publish(new Version4());
         $packet->addRawToPayLoad('This is the payload');
 
-        $this->assertEquals(
-            MessageHelper::getReadableByRawString(
-                chr(48) .
-                chr(21) .
-                chr(0) .
-                chr(0) .
-                'This is the payload'
-            ),
-            MessageHelper::getReadableByRawString($packet->get())
-        );
+        $expected =
+            chr(0b00110000) .
+            chr(21) .
+            chr(0) .
+            chr(0) .
+            'This is the payload';
+
+        $this->assertEquals('This is the payload', $packet->getPayload());
+
+        $this->assertSerialisedPacketEquals($expected, $packet->get());
     }
 
-    public function testSetTopic()
+    public function testTopic()
     {
-        $topic = 'topictest';
+        $packet = new Publish(new Version4());
 
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
-        $packet->setTopic($topic);
+        $packet->setTopic('topic/test');
 
-        $reflection = new ReflectionClass('oliverlorenz\reactphpmqtt\packet\Publish');
-        $property = $reflection->getProperty('topic');
-        $property->setAccessible(true);
+        $expected =
+            chr(0b00110000) .
+            chr(12) .
+            chr(0) .
+            chr(10) .
+            'topic/test';
 
-        $this->assertEquals(
-            $property->getValue($packet),
-            $topic
+        $this->assertEquals('topic/test', $packet->getTopic());
+
+        $this->assertSerialisedPacketEquals(
+            $expected,
+            $packet->get()
         );
     }
 
@@ -141,8 +144,7 @@ class PublishTest extends PHPUnit_Framework_TestCase {
     {
         $qos = 2;
 
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
+        $packet = new Publish(new Version4());
         $packet->setQos($qos);
 
         $reflection = new ReflectionClass('oliverlorenz\reactphpmqtt\packet\Publish');
@@ -155,106 +157,45 @@ class PublishTest extends PHPUnit_Framework_TestCase {
         );
     }
 
-    public function testSetDup()
-    {
-        $dup = true;
-
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
-        $packet->setDup($dup);
-
-        $reflection = new ReflectionClass('oliverlorenz\reactphpmqtt\packet\Publish');
-        $property = $reflection->getProperty('dup');
-        $property->setAccessible(true);
-
-        $this->assertEquals(
-            $property->getValue($packet),
-            $dup
-        );
-    }
-
-    public function testSetRetain()
-    {
-        $retain = true;
-
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
-        $packet->setRetain($retain);
-
-        $reflection = new ReflectionClass('oliverlorenz\reactphpmqtt\packet\Publish');
-        $property = $reflection->getProperty('retain');
-        $property->setAccessible(true);
-
-        $this->assertEquals(
-            $property->getValue($packet),
-            $retain
-        );
-    }
-
     public function testSetTopicReturn()
     {
         $topic = 'topictest';
 
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
+        $packet = new Publish(new Version4());
         $return = $packet->setTopic($topic);
         $this->assertInstanceOf('oliverlorenz\reactphpmqtt\packet\Publish', $return);
-    }
-
-    public function testSetMessageId()
-    {
-        $messageId = 1;
-
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
-        $packet->setMessageId($messageId);
-
-        $reflection = new ReflectionClass('oliverlorenz\reactphpmqtt\packet\Publish');
-        $property = $reflection->getProperty('messageId');
-        $property->setAccessible(true);
-
-        $this->assertEquals(
-            $property->getValue($packet),
-            $messageId
-        );
     }
 
     public function testSetMessageIdReturn()
     {
         $messageId = 1;
 
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $packet = new Publish($version);
+        $packet = new Publish(new Version4());
         $return = $packet->setMessageId($messageId);
         $this->assertInstanceOf('oliverlorenz\reactphpmqtt\packet\Publish', $return);
     }
 
     public function qosProvider() {
         return array(
-            array(0, 48),
-            array(1, 50),
-            array(2, 52),
+            array(0, 0b00110000),
+            array(1, 0b00110010),
+            array(2, 0b00110100),
         );
     }
 
     /**
      * @dataProvider qosProvider
      */
-    public function testParseWithQos($qos, $bit)
+    public function testParseWithQos($qos, $byte1)
     {
         $input =
-            chr($bit) .
-//            chr(4) .
+            chr($byte1) .
             chr(2) .
             chr(0) .
-            chr(0) /*.
-            chr(0) .
-            chr(10)*/
-        ;
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $parsedPacket = Publish::parse($version, $input);
+            chr(0);
+        $parsedPacket = Publish::parse(new Version4(), $input);
 
-        $comparisonPacket = new Publish($version);
+        $comparisonPacket = new Publish(new Version4());
         $comparisonPacket->setQos($qos);
 
         $this->assertPacketEquals($comparisonPacket, $parsedPacket);
@@ -263,18 +204,13 @@ class PublishTest extends PHPUnit_Framework_TestCase {
     public function testParseWithRetain()
     {
         $input =
-            chr(49) .
-//            chr(4) .
+            chr(0b00110001) .
             chr(2) .
             chr(0) .
-            chr(0) /*.
-            chr(0) .
-            chr(10)*/
-        ;
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $parsedPacket = Publish::parse($version, $input);
+            chr(0);
+        $parsedPacket = Publish::parse(new Version4(), $input);
 
-        $comparisonPacket = new Publish($version);
+        $comparisonPacket = new Publish(new Version4());
         $comparisonPacket->setRetain(true);
 
         $this->assertPacketEquals($comparisonPacket, $parsedPacket);
@@ -283,28 +219,46 @@ class PublishTest extends PHPUnit_Framework_TestCase {
     public function testParseWithDup()
     {
         $input =
-            chr(56) .
-//            chr(4) .
+            chr(0b00111000) .
             chr(2) .
             chr(0) .
-            chr(0) /*.
-            chr(0) .
-            chr(10)*/
-        ;
-        $version = new \oliverlorenz\reactphpmqtt\protocol\Version4();
-        $parsedPacket = Publish::parse($version, $input);
+            chr(0);
+        $parsedPacket = Publish::parse(new Version4(), $input);
 
-        $comparisonPacket = new Publish($version);
+        $comparisonPacket = new Publish(new Version4());
         $comparisonPacket->setDup(true);
 
         $this->assertPacketEquals($comparisonPacket, $parsedPacket);
     }
-    
+
+    public function testParseWithPayload()
+    {
+        $expectedPacket = new Publish(new Version4());
+        $expectedPacket->addRawToPayLoad('My payload');
+
+        $input =
+            chr(0b00110000) .
+            chr(12) .
+            chr(0) .
+            chr(0) .
+            'My payload';
+        $parsedPacket = Publish::parse(new Version4(), $input);
+
+        $this->assertPacketEquals($expectedPacket, $parsedPacket);
+        $this->assertEquals('My payload', $parsedPacket->getPayload());
+    }
+
     private function assertPacketEquals(Publish $expected, Publish $actual)
     {
+        $this->assertEquals($expected, $actual);
+        $this->assertSerialisedPacketEquals($expected->get(), $actual->get());
+    }
+
+    private function assertSerialisedPacketEquals($expected, $actual)
+    {
         $this->assertEquals(
-            MessageHelper::getReadableByRawString($expected->get()),
-            MessageHelper::getReadableByRawString($actual->get())
+            MessageHelper::getReadableByRawString($expected),
+            MessageHelper::getReadableByRawString($actual)
         );
     }
 }

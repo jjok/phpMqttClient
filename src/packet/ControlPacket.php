@@ -19,7 +19,7 @@ abstract class ControlPacket {
 
     protected $variableHeader;
 
-    protected $payload;
+    protected $payload = '';
 
     protected $useVariableHeader = false;
     protected $useFixedHeader = true;
@@ -45,7 +45,8 @@ abstract class ControlPacket {
 
     protected static function checkRawInputValidControlPackageType($rawInput)
     {
-        if (!$rawInput{1} === static::getControlPacketType()) {
+        $packetType = ord($rawInput{0}) >> 4;
+        if ($packetType !== static::getControlPacketType()) {
             throw new \RuntimeException('raw input is not valid for this control packet');
         }
     }

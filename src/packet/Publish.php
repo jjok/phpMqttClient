@@ -17,13 +17,13 @@ class Publish extends ControlPacket {
 
     protected $messageId;
 
-    protected $topic;
+    protected $topic = '';
 
     protected $qos = 0;
 
-    protected $dup;
+    protected $dup = false;
 
-    protected $retain;
+    protected $retain = false;
 
     protected $useVariableHeader = true;
 
@@ -35,26 +35,24 @@ class Publish extends ControlPacket {
         return ControlPacketType::PUBLISH;
     }
 
-    public function __construct(Version $version)
-    {
-        parent::__construct($version);
-    }
-
     public static function parse(Version $version, $rawInput)
     {
         /** @var Publish $packet */
         $packet = parent::parse($version, $rawInput);
+
+        //TODO 3.3.2.2 Packet Identifier not yet supported
         $topic = static::getPayloadLengthPrefixFieldInRawInput(2, $rawInput);
         $packet->setTopic($topic);
-        $packet->setReceiveTimestamp(new \DateTime());
-        if (!empty($rawInput{0})) {
-            $packet->setRetain(($rawInput{0} & 1) === 1);
-            $packet->setDup(($rawInput{0} & 8) === 8);
-            if (($rawInput{0} & 2) === 2) {
+//        $packet->setReceiveTimestamp(new \DateTime());
+        $byte1 = $rawInput{0};
+        if (!empty($byte1)) {
+            $packet->setRetain(($byte1 & 1) === 1);
+            if (($byte1 & 2) === 2) {
                 $packet->setQos(1);
-            } elseif (($rawInput{0} & 4) === 4) {
+            } elseif (($byte1 & 4) === 4) {
                 $packet->setQos(2);
             }
+            $packet->setDup(($byte1 & 8) === 8);
         }
         $packet->payload = substr(
             $rawInput,
@@ -139,13 +137,13 @@ class Publish extends ControlPacket {
         return $this->getLengthPrefixField($this->topic);
     }
 
-    /**
-     * @param \DateTime $dateTime
-     */
-    private function setReceiveTimestamp($dateTime)
-    {
-        $this->receiveTimestamp = $dateTime;
-    }
+//    /**
+//     * @param \DateTime $dateTime
+//     */
+//    private function setReceiveTimestamp($dateTime)
+//    {
+//        $this->receiveTimestamp = $dateTime;
+//    }
 
     protected function addReservedBitsToFixedHeaderControlPacketType($byte1)
     {
