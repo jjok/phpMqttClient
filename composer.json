@@ -15,6 +15,7 @@
         }
     },
     "require": {
+        "php": ">=5.6",
         "react/socket-client": "0.5.*",
         "react/stream": "0.4.*",
         "react/event-loop": "0.4.*",
