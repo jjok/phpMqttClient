@@ -26,7 +26,7 @@ class FactoryTest extends PHPUnit_Framework_TestCase
         $incomingPackets = [
             new ConnectionAck(),
             new PingResponse(),
-            new Publish('some/topic'),
+            new Publish('some/topic', 'payload'),
             new PublishComplete(),
             new PublishReceived(),
             new PublishRelease(),

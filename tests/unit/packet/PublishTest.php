@@ -40,23 +40,24 @@ class PublishTest extends PHPUnit_Framework_TestCase {
 
     public function testPublishStandardWithQos0()
     {
-        $packet = new Publish('topic');
-        $packet->setQos(0);
+        $packet = new Publish('topic', 'payload');
+//        $packet->setQos(0);
 
         $expected =
             chr(0b00110000) .
-            chr(7) .
+            chr(14) .
             chr(0) .
             chr(5) .
-            'topic';
+            'topic'.
+            'payload';
 
         $this->assertSerialisedPacketEquals($expected, $packet->get());
     }
 
     public function testPublishStandardWithQos1()
     {
-        $packet = new Publish('topic');
-        $packet->setQos(1);
+        $packet = new Publish('topic', '', Publish::QOS1);
+//        $packet->setQos(1);
 
         $expected =
             chr(0b00110010) .
@@ -70,8 +71,8 @@ class PublishTest extends PHPUnit_Framework_TestCase {
 
     public function testPublishStandardWithQos2()
     {
-        $packet = new Publish('topic');
-        $packet->setQos(2);
+        $packet = new Publish('topic', '', Publish::QOS2);
+//        $packet->setQos(2);
 
         $expected =
             chr(0b00110100) .
@@ -85,8 +86,8 @@ class PublishTest extends PHPUnit_Framework_TestCase {
 
     public function testPublishStandardWithDup()
     {
-        $packet = new Publish('topic');
-        $packet->setDup(true);
+        $packet = new Publish('topic', '', Publish::DUP);
+//        $packet->setDup(true);
 
         $expected =
             chr(0b00111000) .
@@ -100,8 +101,8 @@ class PublishTest extends PHPUnit_Framework_TestCase {
 
     public function testPublishStandardWithRetain()
     {
-        $packet = new Publish('topic');
-        $packet->setRetain(true);
+        $packet = new Publish('topic', '', Publish::RETAIN);
+//        $packet->setRetain(true);
 
         $expected =
             chr(0b00110001) .
@@ -115,8 +116,8 @@ class PublishTest extends PHPUnit_Framework_TestCase {
 
     public function testPublishWithPayload()
     {
-        $packet = new Publish('topic');
-        $packet->addRawToPayLoad('This is the payload');
+        $packet = new Publish('topic', 'This is the payload');
+//        $packet->addRawToPayLoad('This is the payload');
 
         $expected =
             chr(0b00110000) .
@@ -133,7 +134,7 @@ class PublishTest extends PHPUnit_Framework_TestCase {
 
     public function testTopic()
     {
-        $packet = new Publish('topic/test');
+        $packet = new Publish('topic/test', '');
 
         $expected =
             chr(0b00110000) .
@@ -154,23 +155,23 @@ class PublishTest extends PHPUnit_Framework_TestCase {
     {
         $messageId = 1;
 
-        $packet = new Publish('topic');
+        $packet = new Publish('topic', '');
         $return = $packet->setMessageId($messageId);
         $this->assertInstanceOf('oliverlorenz\reactphpmqtt\packet\Publish', $return);
     }
 
     public function qosProvider() {
         return array(
-            array(0, 0b00110000),
-            array(1, 0b00110010),
-            array(2, 0b00110100),
+            array(0,             0, 0b00110000),
+            array(1, Publish::QOS1, 0b00110010),
+            array(2, Publish::QOS2, 0b00110100),
         );
     }
 
     /**
      * @dataProvider qosProvider
      */
-    public function testParseWithQos($qos, $byte1)
+    public function testParseWithQos($qos, $flags, $byte1)
     {
         $input =
             chr($byte1) .
@@ -180,9 +181,10 @@ class PublishTest extends PHPUnit_Framework_TestCase {
             'topic';
         $parsedPacket = Publish::parse($input);
 
-        $comparisonPacket = new Publish('topic');
-        $comparisonPacket->setQos($qos);
+        $comparisonPacket = new Publish('topic', '', $flags);
+//        $comparisonPacket->setQos($qos);
 
+        $this->assertEquals($qos, $parsedPacket->getQos());
         $this->assertPacketEquals($comparisonPacket, $parsedPacket);
     }
 
@@ -196,8 +198,8 @@ class PublishTest extends PHPUnit_Framework_TestCase {
             'topic';
         $parsedPacket = Publish::parse($input);
 
-        $comparisonPacket = new Publish('topic');
-        $comparisonPacket->setRetain(true);
+        $comparisonPacket = new Publish('topic', '', Publish::RETAIN);
+//        $comparisonPacket->setRetain(true);
 
         $this->assertPacketEquals($comparisonPacket, $parsedPacket);
     }
@@ -212,15 +214,15 @@ class PublishTest extends PHPUnit_Framework_TestCase {
             'topic';
         $parsedPacket = Publish::parse($input);
 
-        $comparisonPacket = new Publish('topic');
-        $comparisonPacket->setDup(true);
+        $comparisonPacket = new Publish('topic', '', Publish::DUP);
+//        $comparisonPacket->setDup(true);
 
         $this->assertPacketEquals($comparisonPacket, $parsedPacket);
     }
 
     public function testParseWithTopic()
     {
-        $expectedPacket = new Publish('some/test/topic');
+        $expectedPacket = new Publish('some/test/topic', '');
 
         $input =
             chr(0b00110000) .
@@ -236,7 +238,7 @@ class PublishTest extends PHPUnit_Framework_TestCase {
 
     public function testParseWithPayload()
     {
-        $expectedPacket = new Publish('topic');
+        $expectedPacket = new Publish('topic', '');
         $expectedPacket->addRawToPayLoad('My payload');
 
         $input =
