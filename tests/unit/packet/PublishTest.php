@@ -22,6 +22,16 @@ class PublishTest extends PHPUnit_Framework_TestCase {
         $this->assertEquals(3, Publish::getControlPacketType());
     }
 
+    public function testItIsAProtocolViolationToHaveBothQosBitsAreSet()
+    {
+        $this->setExpectedException(
+            'oliverlorenz\reactphpmqtt\protocol\Violation',
+            'A PUBLISH Packet MUST NOT have both QoS bits set to 1.'
+        );
+
+        new Publish('topic', 'payload', (Publish::QOS1 | Publish::QOS2));
+    }
+
     public function testExceptionIsThrownForUnexpectedPacketType()
     {
         $input =

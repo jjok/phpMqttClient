@@ -28,27 +28,21 @@ class Publish extends ControlPacket
 
     private $flags = 0;
 
-//    private $qos = 0;
-
-//    private $dup = false;
-
-//    private $retain = false;
-
     /**
      * @param string $topicName The Topic Name identifies the information channel to which payload data is published.
-     * @param string $payload
+     * @param string $payload The Payload contains the Application Message that is being published.
      * @param int $flags Bitmask of Retain, QoS and DUP settings.
      * @throws ProtocolViolation
      */
     public function __construct($topicName, $payload, $flags = 0)
     {
-        if(($flags & (self::QOS1 + self::QOS2)) === (self::QOS1 + self::QOS2)) {
-            throw new ProtocolViolation('A PUBLISH Packet MUST NOT have both QoS bits set to 1.');
-        }
-
         $this->topic = $topicName;
         $this->payload = $payload;
         $this->flags = $flags;
+
+        if($this->flagIsSet(self::QOS1) && $this->flagIsSet(self::QOS2)) {
+            throw new ProtocolViolation('A PUBLISH Packet MUST NOT have both QoS bits set to 1.');
+        }
     }
 
     public static function getControlPacketType()
@@ -66,27 +60,13 @@ class Publish extends ControlPacket
         $byte1 = $rawInput{0};
 
         $flags = $byte1 % 256;
-//        $retain = ($byte1 & 1) === 1;
-//        $qos = 0;
-//        if (($byte1 & 2) === 2) {
-//            $qos = 1;
-//        } elseif (($byte1 & 4) === 4) {
-//            $qos = 2;
-//        }
-//        $dup = ($byte1 & 8) === 8;
 
         $payload = substr(
             $rawInput,
             4 + strlen($topic)
         );
 
-        $packet = new static($topic, $payload, $flags);
-//        $packet->setRetain($retain);
-//        $packet->setQos($qos);
-//        $packet->setDup($dup);
-//        $packet->addRawToPayLoad($payload);
-
-        return $packet;
+        return new static($topic, $payload, $flags);
     }
 
     /**
@@ -98,36 +78,6 @@ class Publish extends ControlPacket
         $this->messageId = $messageId;
         return $this;
     }
-
-//    /**
-//     * @param int $qos 0,1,2
-//     * @return $this
-//     */
-//    public function setQos($qos)
-//    {
-//        $this->qos = $qos;
-//        return $this;
-//    }
-
-//    /**
-//     * @param bool $dup
-//     * @return $this
-//     */
-//    public function setDup($dup)
-//    {
-//        $this->dup = $dup;
-//        return $this;
-//    }
-
-//    /**
-//     * @param bool $retain
-//     * @return $this
-//     */
-//    public function setRetain($retain)
-//    {
-//        $this->retain = $retain;
-//        return $this;
-//    }
 
     /**
      * @return string
@@ -142,16 +92,20 @@ class Publish extends ControlPacket
      */
     public function getQos()
     {
-        if(($this->flags & self::QOS1) === self::QOS1) {
+        if($this->flagIsSet(self::QOS1)) {
             return 1;
         }
 
-        if(($this->flags & self::QOS2) === self::QOS2) {
+        if($this->flagIsSet(self::QOS2)) {
             return 2;
         }
 
         return 0;
-//        return $this->qos;
+    }
+
+    private function flagIsSet($flag)
+    {
+        return ($this->flags & $flag) === $flag;
     }
 
     /**
@@ -165,22 +119,5 @@ class Publish extends ControlPacket
     protected function addReservedBitsToFixedHeaderControlPacketType($byte1)
     {
         return $byte1 + $this->flags;
-//        $qosByte = 0;
-//        if ($this->qos === 1) {
-//            $qosByte = 1;
-//        } else if ($this->qos === 2) {
-//            $qosByte = 2;
-//        }
-//        $byte1 += $qosByte << 1;
-//
-//        if ($this->dup) {
-//            $byte1 += 8;
-//        }
-//
-//        if ($this->retain) {
-//            $byte1 += 1;
-//        }
-
-//        return $byte1;
     }
 }
