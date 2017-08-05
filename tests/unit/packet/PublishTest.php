@@ -51,7 +51,6 @@ class PublishTest extends PHPUnit_Framework_TestCase {
     public function testPublishStandardWithQos0()
     {
         $packet = new Publish('topic', 'payload');
-//        $packet->setQos(0);
 
         $expected =
             chr(0b00110000) .
@@ -67,7 +66,6 @@ class PublishTest extends PHPUnit_Framework_TestCase {
     public function testPublishStandardWithQos1()
     {
         $packet = new Publish('topic', '', Publish::QOS1);
-//        $packet->setQos(1);
 
         $expected =
             chr(0b00110010) .
@@ -82,7 +80,6 @@ class PublishTest extends PHPUnit_Framework_TestCase {
     public function testPublishStandardWithQos2()
     {
         $packet = new Publish('topic', '', Publish::QOS2);
-//        $packet->setQos(2);
 
         $expected =
             chr(0b00110100) .
@@ -97,7 +94,6 @@ class PublishTest extends PHPUnit_Framework_TestCase {
     public function testPublishStandardWithDup()
     {
         $packet = new Publish('topic', '', Publish::DUP);
-//        $packet->setDup(true);
 
         $expected =
             chr(0b00111000) .
@@ -112,7 +108,6 @@ class PublishTest extends PHPUnit_Framework_TestCase {
     public function testPublishStandardWithRetain()
     {
         $packet = new Publish('topic', '', Publish::RETAIN);
-//        $packet->setRetain(true);
 
         $expected =
             chr(0b00110001) .
@@ -127,7 +122,6 @@ class PublishTest extends PHPUnit_Framework_TestCase {
     public function testPublishWithPayload()
     {
         $packet = new Publish('topic', 'This is the payload');
-//        $packet->addRawToPayLoad('This is the payload');
 
         $expected =
             chr(0b00110000) .
@@ -192,7 +186,6 @@ class PublishTest extends PHPUnit_Framework_TestCase {
         $parsedPacket = Publish::parse($input);
 
         $comparisonPacket = new Publish('topic', '', $flags);
-//        $comparisonPacket->setQos($qos);
 
         $this->assertEquals($qos, $parsedPacket->getQos());
         $this->assertPacketEquals($comparisonPacket, $parsedPacket);
@@ -209,7 +202,6 @@ class PublishTest extends PHPUnit_Framework_TestCase {
         $parsedPacket = Publish::parse($input);
 
         $comparisonPacket = new Publish('topic', '', Publish::RETAIN);
-//        $comparisonPacket->setRetain(true);
 
         $this->assertPacketEquals($comparisonPacket, $parsedPacket);
     }
@@ -225,7 +217,6 @@ class PublishTest extends PHPUnit_Framework_TestCase {
         $parsedPacket = Publish::parse($input);
 
         $comparisonPacket = new Publish('topic', '', Publish::DUP);
-//        $comparisonPacket->setDup(true);
 
         $this->assertPacketEquals($comparisonPacket, $parsedPacket);
     }
@@ -248,8 +239,7 @@ class PublishTest extends PHPUnit_Framework_TestCase {
 
     public function testParseWithPayload()
     {
-        $expectedPacket = new Publish('topic', '');
-        $expectedPacket->addRawToPayLoad('My payload');
+        $expectedPacket = new Publish('topic', 'My payload');
 
         $input =
             chr(0b00110000) .
