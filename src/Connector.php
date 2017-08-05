@@ -204,22 +204,8 @@ class Connector implements ConnectorInterface {
     /**
      * @return \React\Promise\Promise
      */
-    public function publish(Stream $stream, $topic, $message, $qos = 0, $dup = false, $retain = false)
-//    public function publish(Stream $stream, $topic, $message, $flags = 0)
+    public function publish(Stream $stream, $topic, $message, $flags = 0)
     {
-        $flags = 0;
-        if($qos === 1) {
-            $flags += Publish::QOS1;
-        }
-        elseif ($qos === 2) {
-            $flags += Publish::QOS2;
-        }
-        if($dup) {
-            $flags += Publish::DUP;
-        }
-        if($retain) {
-            $flags += Publish::RETAIN;
-        }
         $packet = new Publish($topic, $message, $flags);
         $packet->setMessageId($this->messageCounter++);
 
