@@ -11,8 +11,6 @@ abstract class ControlPacket
 {
     protected $payload = '';
 
-    protected $identifier;
-
     /**
      * @param string $rawInput
      * @return static
@@ -37,7 +35,7 @@ abstract class ControlPacket
         throw new \RuntimeException('you must overwrite getControlPacketType()');
     }
 
-    protected function getPayloadLength()
+    private function getPayloadLength()
     {
         return strlen($this->getPayload());
     }
@@ -47,7 +45,7 @@ abstract class ControlPacket
         return $this->payload;
     }
 
-    protected function getRemainingLength()
+    private function getRemainingLength()
     {
         return strlen($this->getVariableHeader()) + $this->getPayloadLength();
     }
@@ -55,7 +53,7 @@ abstract class ControlPacket
     /**
      * @return string
      */
-    protected function getFixedHeader()
+    private function getFixedHeader()
     {
         // Figure 3.8
         $byte1 = static::getControlPacketType() << 4;
@@ -78,7 +76,7 @@ abstract class ControlPacket
     /**
      * @param $stringToAdd
      */
-    public function addRawToPayLoad($stringToAdd)
+    protected function addToPayLoad($stringToAdd)
     {
         $this->payload .= $stringToAdd;
     }
@@ -89,26 +87,25 @@ abstract class ControlPacket
     public function addLengthPrefixedField($fieldPayload)
     {
         $return = $this->getLengthPrefixField($fieldPayload);
-        $this->addRawToPayLoad($return);
+        $this->addToPayLoad($return);
     }
 
-    public function getLengthPrefixField($fieldPayload)
+    public function getLengthPrefixField($string)
     {
-        $stringLength = strlen($fieldPayload);
+        $stringLength = strlen($string);
         $msb = $stringLength >> 8;
         $lsb = $stringLength % 256;
-        $return = chr($msb);
-        $return .= chr($lsb);
-        $return .= $fieldPayload;
 
-        return $return;
+        return chr($msb)
+             . chr($lsb)
+             . $string;
     }
 
     public function get()
     {
-        return $this->getFixedHeader() .
-               $this->getVariableHeader() .
-               $this->getPayload();
+        return $this->getFixedHeader()
+             . $this->getVariableHeader()
+             . $this->getPayload();
     }
 
     /**
